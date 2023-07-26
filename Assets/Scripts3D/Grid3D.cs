@@ -8,11 +8,18 @@ public class Grid3D<T> {
     public Vector3Int Size { get; private set; }
     public Vector3Int Offset { get; set; }
 
+    public T[] Data => data;
+
     public Grid3D(Vector3Int size, Vector3Int offset) {
         Size = size;
         Offset = offset;
 
         data = new T[size.x * size.y * size.z];
+    }
+
+    public void Clear()
+    {
+        data = null;
     }
 
     public int GetIndex(Vector3Int pos) {
@@ -40,6 +47,39 @@ public class Grid3D<T> {
         set {
             pos += Offset;
             data[GetIndex(pos)] = value;
+        }
+    }
+
+    
+}
+
+public static class Grid
+{
+    public static readonly Vector3Int[] Directions =
+    {
+        new Vector3Int(0, 0, 1),
+        new Vector3Int(1, 0, 0),
+        new Vector3Int(0, 0, -1),
+        new Vector3Int(-1, 0, 0)
+    };
+
+    public static int DirectionFromVector(Vector3Int vector)
+    {
+        if(vector.x == 1)
+        {
+            return 1;
+        }
+        else if(vector.x == -1)
+        {
+            return 3;
+        }
+        else if(vector.z == 1)
+        {
+            return 0;
+        }
+        else
+        {
+            return 2;
         }
     }
 }

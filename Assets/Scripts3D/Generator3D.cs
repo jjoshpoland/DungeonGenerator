@@ -3,14 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using Random = System.Random;
 using Graphs;
+using UnityEngine.Events;
 
+[ExecuteInEditMode]
 public class Generator3D : MonoBehaviour {
-    enum CellType {
-        None,
-        Room,
-        Hallway,
-        Stairs
-    }
+    
 
     class Room {
         public BoundsInt bounds;
@@ -40,22 +37,65 @@ public class Generator3D : MonoBehaviour {
     Material blueMaterial;
     [SerializeField]
     Material greenMaterial;
+    public UnityEvent OnGenerated;
 
     Random random;
-    Grid3D<CellType> grid;
+    Grid3D<Cell> grid;
     List<Room> rooms;
     Delaunay3D delaunay;
     HashSet<Prim.Edge> selectedEdges;
 
-    void Start() {
-        random = new Random(0);
-        grid = new Grid3D<CellType>(size, Vector3Int.zero);
+    public Grid3D<Cell> Grid => grid;
+    public Vector3Int Size => size;
+
+    public void Generate()
+    {
+        random = new Random((int)System.DateTime.Now.Ticks);
+        grid = new Grid3D<Cell>(size, Vector3Int.zero);
         rooms = new List<Room>();
+
+        for (int i = 0; i < grid.Data.Length; i++)
+        {
+            grid.Data[i] = new Cell();
+        }
 
         PlaceRooms();
         Triangulate();
         CreateHallways();
         PathfindHallways();
+
+        OnGenerated.Invoke();
+    }
+
+    public void EditorGenerate()
+    {
+        EditorClear();
+        Generate();
+    }
+
+    public void EditorClear()
+    {
+        for (int i = this.transform.childCount; i > 0; i--)
+        {
+            DestroyImmediate(transform.GetChild(0).gameObject);
+        }
+        if(grid != null)
+        {
+            grid.Clear();
+        }
+        
+    }
+
+    public void Clear()
+    {
+        foreach(Transform t in transform)
+        {
+            Destroy(t.gameObject);
+        }
+        if(grid != null)
+        {
+            grid.Clear();
+        }
     }
 
     void PlaceRooms() {
@@ -91,10 +131,10 @@ public class Generator3D : MonoBehaviour {
 
             if (add) {
                 rooms.Add(newRoom);
-                PlaceRoom(newRoom.bounds.position, newRoom.bounds.size);
+                //PlaceRoom(newRoom.bounds.position, newRoom.bounds.size);
 
                 foreach (var pos in newRoom.bounds.allPositionsWithin) {
-                    grid[pos] = CellType.Room;
+                    grid[pos].CellType = CellType.Room;
                 }
             }
         }
@@ -151,19 +191,19 @@ public class Generator3D : MonoBehaviour {
                     //flat hallway
                     pathCost.cost = Vector3Int.Distance(b.Position, endPos);    //heuristic
 
-                    if (grid[b.Position] == CellType.Stairs) {
+                    if (grid[b.Position].CellType == CellType.Stairs) {
                         return pathCost;
-                    } else if (grid[b.Position] == CellType.Room) {
+                    } else if (grid[b.Position].CellType == CellType.Room) {
                         pathCost.cost += 5;
-                    } else if (grid[b.Position] == CellType.None) {
+                    } else if (grid[b.Position].CellType == CellType.None) {
                         pathCost.cost += 1;
                     }
 
                     pathCost.traversable = true;
                 } else {
                     //staircase
-                    if ((grid[a.Position] != CellType.None && grid[a.Position] != CellType.Hallway)
-                        || (grid[b.Position] != CellType.None && grid[b.Position] != CellType.Hallway)) return pathCost;
+                    if ((grid[a.Position].CellType != CellType.None && grid[a.Position].CellType != CellType.Hallway)
+                        || (grid[b.Position].CellType != CellType.None && grid[b.Position].CellType != CellType.Hallway)) return pathCost;
 
                     pathCost.cost = 100 + Vector3Int.Distance(b.Position, endPos);    //base cost + heuristic
 
@@ -178,10 +218,10 @@ public class Generator3D : MonoBehaviour {
                         return pathCost;
                     }
 
-                    if (grid[a.Position + horizontalOffset] != CellType.None
-                        || grid[a.Position + horizontalOffset * 2] != CellType.None
-                        || grid[a.Position + verticalOffset + horizontalOffset] != CellType.None
-                        || grid[a.Position + verticalOffset + horizontalOffset * 2] != CellType.None) {
+                    if (grid[a.Position + horizontalOffset].CellType != CellType.None
+                        || grid[a.Position + horizontalOffset * 2].CellType != CellType.None
+                        || grid[a.Position + verticalOffset + horizontalOffset].CellType != CellType.None
+                        || grid[a.Position + verticalOffset + horizontalOffset * 2].CellType != CellType.None) {
                         return pathCost;
                     }
 
@@ -196,8 +236,8 @@ public class Generator3D : MonoBehaviour {
                 for (int i = 0; i < path.Count; i++) {
                     var current = path[i];
 
-                    if (grid[current] == CellType.None) {
-                        grid[current] = CellType.Hallway;
+                    if (grid[current].CellType == CellType.None) {
+                        grid[current].CellType = CellType.Hallway;
                     }
 
                     if (i > 0) {
@@ -210,27 +250,37 @@ public class Generator3D : MonoBehaviour {
                             int zDir = Mathf.Clamp(delta.z, -1, 1);
                             Vector3Int verticalOffset = new Vector3Int(0, delta.y, 0);
                             Vector3Int horizontalOffset = new Vector3Int(xDir, 0, zDir);
+                            Vector3Int direction = new Vector3Int(xDir, delta.y, zDir);
+                            bool up = delta.y > 0;
                             
-                            grid[prev + horizontalOffset] = CellType.Stairs;
-                            grid[prev + horizontalOffset * 2] = CellType.Stairs;
-                            grid[prev + verticalOffset + horizontalOffset] = CellType.Stairs;
-                            grid[prev + verticalOffset + horizontalOffset * 2] = CellType.Stairs;
+                            grid[prev + horizontalOffset].CellType = CellType.Stairs;
+                            grid[prev + horizontalOffset].StairType = up ? StairType.Landing : StairType.Top;
+                            grid[prev + horizontalOffset].StairDirection = direction;
+                            grid[prev + horizontalOffset * 2].CellType = CellType.Stairs;
+                            grid[prev + horizontalOffset * 2].StairType = up ? StairType.Staircase : StairType.Ceiling;
+                            grid[prev + horizontalOffset * 2].StairDirection = direction;
+                            grid[prev + verticalOffset + horizontalOffset].CellType = CellType.Stairs;
+                            grid[prev + verticalOffset + horizontalOffset].StairType = up ? StairType.Ceiling : StairType.Staircase;
+                            grid[prev + verticalOffset + horizontalOffset].StairDirection = direction;
+                            grid[prev + verticalOffset + horizontalOffset * 2].CellType = CellType.Stairs;
+                            grid[prev + verticalOffset + horizontalOffset * 2].StairType = up ? StairType.Top : StairType.Landing;
+                            grid[prev + verticalOffset + horizontalOffset * 2].StairDirection = direction;
 
-                            PlaceStairs(prev + horizontalOffset);
-                            PlaceStairs(prev + horizontalOffset * 2);
-                            PlaceStairs(prev + verticalOffset + horizontalOffset);
-                            PlaceStairs(prev + verticalOffset + horizontalOffset * 2);
+                            //PlaceStairs(prev + horizontalOffset);
+                            //PlaceStairs(prev + horizontalOffset * 2);
+                            //PlaceStairs(prev + verticalOffset + horizontalOffset);
+                            //PlaceStairs(prev + verticalOffset + horizontalOffset * 2);
                         }
 
-                        Debug.DrawLine(prev + new Vector3(0.5f, 0.5f, 0.5f), current + new Vector3(0.5f, 0.5f, 0.5f), Color.blue, 100, false);
+                        //Debug.DrawLine(prev + new Vector3(0.5f, 0.5f, 0.5f), current + new Vector3(0.5f, 0.5f, 0.5f), Color.blue, 100, false);
                     }
                 }
 
-                foreach (var pos in path) {
-                    if (grid[pos] == CellType.Hallway) {
-                        PlaceHallway(pos);
-                    }
-                }
+                //foreach (var pos in path) {
+                //    if (grid[pos].CellType == CellType.Hallway) {
+                //        PlaceHallway(pos);
+                //    }
+                //}
             }
         }
     }
@@ -239,6 +289,7 @@ public class Generator3D : MonoBehaviour {
         GameObject go = Instantiate(cubePrefab, location, Quaternion.identity);
         go.GetComponent<Transform>().localScale = size;
         go.GetComponent<MeshRenderer>().material = material;
+        go.transform.parent = transform;
     }
 
     void PlaceRoom(Vector3Int location, Vector3Int size) {
