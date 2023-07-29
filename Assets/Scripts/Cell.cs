@@ -8,6 +8,10 @@ public class Cell
     public StairType StairType;
     public Theme theme;
     public Vector3Int StairDirection;
+    public int RoomID;
+    public bool DoorWay;
+    public bool Path;
+    public Vector3Int PrevPath;
 }
 
 public enum CellType

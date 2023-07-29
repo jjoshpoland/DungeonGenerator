@@ -60,10 +60,11 @@ public static class Grid
         new Vector3Int(0, 0, 1),
         new Vector3Int(1, 0, 0),
         new Vector3Int(0, 0, -1),
-        new Vector3Int(-1, 0, 0)
+        new Vector3Int(-1, 0, 0),
+        new Vector3Int(0, 1, 0),
+        new Vector3Int(0, -1, 0)
     };
-
-    public static int DirectionFromVector(Vector3Int vector)
+    public static int HorizontalDirectionFromVector(Vector3Int vector)
     {
         if(vector.x == 1)
         {
@@ -82,4 +83,9 @@ public static class Grid
             return 2;
         }
     }
+}
+
+public enum GridDirections
+{
+    Forward, Right, Back, Left, Up, Down
 }

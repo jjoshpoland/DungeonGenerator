@@ -30,6 +30,8 @@ public class Generator3D : MonoBehaviour {
     [SerializeField]
     Vector3Int roomMaxSize;
     [SerializeField]
+    Vector3Int roomMinSize = Vector3Int.one;
+    [SerializeField]
     GameObject cubePrefab;
     [SerializeField]
     Material redMaterial;
@@ -107,9 +109,9 @@ public class Generator3D : MonoBehaviour {
             );
 
             Vector3Int roomSize = new Vector3Int(
-                random.Next(1, roomMaxSize.x + 1),
-                random.Next(1, roomMaxSize.y + 1),
-                random.Next(1, roomMaxSize.z + 1)
+                random.Next(roomMinSize.x, roomMaxSize.x + 1),
+                random.Next(roomMinSize.y, roomMaxSize.y + 1),
+                random.Next(roomMinSize.z, roomMaxSize.z + 1)
             );
 
             bool add = true;
@@ -135,6 +137,7 @@ public class Generator3D : MonoBehaviour {
 
                 foreach (var pos in newRoom.bounds.allPositionsWithin) {
                     grid[pos].CellType = CellType.Room;
+                    grid[pos].RoomID = i;
                 }
             }
         }
@@ -236,12 +239,24 @@ public class Generator3D : MonoBehaviour {
                 for (int i = 0; i < path.Count; i++) {
                     var current = path[i];
 
+                    grid[current].Path = true;
+
                     if (grid[current].CellType == CellType.None) {
                         grid[current].CellType = CellType.Hallway;
                     }
 
                     if (i > 0) {
                         var prev = path[i - 1];
+                        grid[current].PrevPath = prev;
+
+                        if(grid[current].CellType == CellType.Room && grid[prev].CellType == CellType.Hallway)
+                        {
+                            grid[current].DoorWay = true;
+                        }
+                        else if(grid[current].CellType == CellType.Hallway && grid[prev].CellType == CellType.Room)
+                        {
+                            grid[prev].DoorWay = true;
+                        }
 
                         var delta = current - prev;
 
