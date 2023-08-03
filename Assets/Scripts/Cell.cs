@@ -13,6 +13,7 @@ public class Cell
     public bool DoorWay;
     public bool Path;
     public Vector3Int PrevPath;
+    public bool SpawnRoom;
 }
 
 public enum CellType

@@ -168,6 +168,7 @@ public class Generator3D : MonoBehaviour {
 
                 foreach (var pos in newRoom.bounds.allPositionsWithin) {
                     grid[pos].CellType = CellType.Room;
+                    grid[pos].SpawnRoom = true;
                     grid[pos].RoomID = i;
                 }
 

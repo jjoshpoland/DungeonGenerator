@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 [ExecuteInEditMode]
 public class DungeonRenderer : MonoBehaviour
@@ -24,10 +25,15 @@ public class DungeonRenderer : MonoBehaviour
     public Material UpMaterial;
 
     Grid3D<GameObject> CellBases;
+
+    public List<GameObject> SpawnTiles;
+
+    public UnityEvent OnRendered;
     
     public void RenderAll()
     {
         CellBases = new Grid3D<GameObject>(Generator.Grid.Size, Generator.Grid.Offset);
+        SpawnTiles = new List<GameObject>();
 
         for (int x = 0; x < Generator.Size.x; x++)
         {
@@ -45,6 +51,8 @@ public class DungeonRenderer : MonoBehaviour
             }
             
         }
+
+        OnRendered.Invoke();
     }
 
     public void RenderArea_Editor(Vector3Int start, Vector3Int size)
@@ -91,10 +99,7 @@ public class DungeonRenderer : MonoBehaviour
             GameObject floor = RenderDungeonPiece(Floor, Generator.transform, pos, Quaternion.identity, Vector3.zero);
             CellBase = floor;
             GameObject ceiling = RenderDungeonPiece(Ceiling, CellBase.transform, pos, Quaternion.identity, Vector3.zero);
-            if (c.CellType == CellType.Room)
-            {
-                ceiling.GetComponent<MeshRenderer>().sharedMaterial = RoomMaterial;
-            }
+            
         }
         else if (c.CellType == CellType.Room)
         {
@@ -113,6 +118,11 @@ public class DungeonRenderer : MonoBehaviour
                 GameObject floor = RenderDungeonPiece(Floor, Generator.transform, pos, Quaternion.identity, Vector3.zero);
                 CellBase = floor;
                 floor.GetComponent<MeshRenderer>().sharedMaterial = RoomMaterial;
+            }
+
+            if(c.SpawnRoom)
+            {
+                SpawnTiles.Add(CellBase);
             }
 
             if (Generator.Grid.InBounds(pos + Grid.Directions[(int)GridDirections.Up]))
