@@ -114,7 +114,6 @@ public class WallTool : EditorTool, IDrawSelectedHandles
             Cell newCell = new Cell();
             wall.Grid[wall.Position + orientation] = newCell;
             newCell.CellType = ct;
-            Debug.Log("new cell created at " + (wall.Position + wall.Orientation) + " with a cell type of " + ct);
             if(ct == CellType.Room)
             {
                 newCell.DoorWay = doorway;
@@ -127,7 +126,6 @@ public class WallTool : EditorTool, IDrawSelectedHandles
         }
 
         wall.ParentRenderer.RenderArea_Editor(wall.Position, new Vector3Int(2, 2, 2));
-        Debug.Log("extrude");
     }
 
     void ExtrudeStair(DungeonWall wall)

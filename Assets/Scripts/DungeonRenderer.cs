@@ -51,8 +51,8 @@ public class DungeonRenderer : MonoBehaviour
     {
         if(CellBases == null)
         {
-            Debug.LogError("Grid has not been initialized");
-            return;
+            Debug.LogWarning("Grid has not been initialized"); 
+            Generator.LoadDungeon();
         }
         if(size.x <= 0 || size.y <= 0 || size.z <= 0)
         {
