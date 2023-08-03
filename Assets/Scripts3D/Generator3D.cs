@@ -39,6 +39,8 @@ public class Generator3D : MonoBehaviour {
     Material blueMaterial;
     [SerializeField]
     Material greenMaterial;
+    [SerializeField]
+    bool generateStartingRoomOnly;
     public UnityEvent OnGenerated;
 
     Random random;
@@ -62,6 +64,11 @@ public class Generator3D : MonoBehaviour {
         }
 
         PlaceRooms();
+        if (generateStartingRoomOnly)
+        {
+            OnGenerated.Invoke();
+            return;
+        }
         Triangulate();
         CreateHallways();
         PathfindHallways();
@@ -96,6 +103,7 @@ public class Generator3D : MonoBehaviour {
         EditorClear();
         Generate();
     }
+    
 
     public void EditorClear()
     {
@@ -124,6 +132,7 @@ public class Generator3D : MonoBehaviour {
 
     void PlaceRooms() {
         for (int i = 0; i < roomCount; i++) {
+            
             Vector3Int location = new Vector3Int(
                 random.Next(0, size.x),
                 random.Next(0, size.y),
@@ -161,6 +170,8 @@ public class Generator3D : MonoBehaviour {
                     grid[pos].CellType = CellType.Room;
                     grid[pos].RoomID = i;
                 }
+
+                if (generateStartingRoomOnly) break;
             }
         }
     }

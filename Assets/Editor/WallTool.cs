@@ -108,7 +108,7 @@ public class WallTool : EditorTool, IDrawSelectedHandles
 
     void Extrude(DungeonWall wall, CellType ct)
     {
-        Vector3Int orientation = cellType != CellType.None ? wall.Orientation : Vector3Int.zero;
+        Vector3Int orientation = ct != CellType.None ? wall.Orientation : Vector3Int.zero;
         if (wall.Grid.InBounds(wall.Position + orientation))
         {
             Cell newCell = new Cell();

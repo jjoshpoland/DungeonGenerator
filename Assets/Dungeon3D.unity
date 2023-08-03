@@ -350,6 +350,7 @@ MonoBehaviour:
   redMaterial: {fileID: 2100000, guid: 71673d9873285904ab00282788add27f, type: 2}
   blueMaterial: {fileID: 2100000, guid: bd79999920190574a94044b2acad7316, type: 2}
   greenMaterial: {fileID: 2100000, guid: 13cd47135277903479d4b55421faa42e, type: 2}
+  generateStartingRoomOnly: 1
   OnGenerated:
     m_PersistentCalls:
       m_Calls:
