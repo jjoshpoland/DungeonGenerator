@@ -50,7 +50,6 @@ public class Grid3D<T> {
         }
     }
 
-    
 }
 
 public static class Grid

@@ -19,5 +19,13 @@ public class Generator3DEditor : Editor
         {
             generator3D.EditorClear();
         }
+        if(GUILayout.Button("Save"))
+        {
+            generator3D.SaveDungeon();
+        }
+        if (GUILayout.Button("Load"))
+        {
+            generator3D.LoadDungeon();
+        }
     }
 }

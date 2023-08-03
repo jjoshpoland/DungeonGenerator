@@ -2,11 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[System.Serializable]
 public class Cell
 {
     public CellType CellType;
     public StairType StairType;
-    public Theme theme;
+    public int theme;
     public Vector3Int StairDirection;
     public int RoomID;
     public bool DoorWay;

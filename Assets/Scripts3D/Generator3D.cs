@@ -69,6 +69,28 @@ public class Generator3D : MonoBehaviour {
         OnGenerated.Invoke();
     }
 
+    public void SaveDungeon()
+    {
+        DungeonData data = new DungeonData();
+        data.Cells = new List<Cell>(grid.Data);
+        data.Size = grid.Size;
+        data.Offset = grid.Offset;
+        System.IO.File.WriteAllText(Application.dataPath + "/SavedDungeons/dungeon.json", JsonUtility.ToJson(data));
+    }
+
+    public void LoadDungeon()
+    {
+        EditorClear();
+        DungeonData data = JsonUtility.FromJson<DungeonData>( System.IO.File.ReadAllText(Application.dataPath + "/SavedDungeons/dungeon.json"));
+        grid = new Grid3D<Cell>(data.Size, data.Offset);
+        for (int i = 0; i < grid.Data.Length; i++)
+        {
+            grid.Data[i] = data.Cells[i];
+        }
+
+        OnGenerated.Invoke();
+    }
+
     public void EditorGenerate()
     {
         EditorClear();
@@ -251,10 +273,12 @@ public class Generator3D : MonoBehaviour {
 
                         if(grid[current].CellType == CellType.Room && grid[prev].CellType == CellType.Hallway)
                         {
+                            //if i just pathed into a room from the hallway, i must be a door
                             grid[current].DoorWay = true;
                         }
                         else if(grid[current].CellType == CellType.Hallway && grid[prev].CellType == CellType.Room)
                         {
+                            //if i just pathed into a hallway from a room, the last cell must have been a door
                             grid[prev].DoorWay = true;
                         }
 
