@@ -41,6 +41,8 @@ public class Generator3D : MonoBehaviour {
     Material greenMaterial;
     [SerializeField]
     bool generateStartingRoomOnly;
+    [SerializeField]
+    string saveName;
     public UnityEvent OnGenerated;
 
     Random random;
@@ -82,13 +84,13 @@ public class Generator3D : MonoBehaviour {
         data.Cells = new List<Cell>(grid.Data);
         data.Size = grid.Size;
         data.Offset = grid.Offset;
-        System.IO.File.WriteAllText(Application.dataPath + "/SavedDungeons/dungeon.json", JsonUtility.ToJson(data));
+        System.IO.File.WriteAllText(Application.dataPath + "/SavedDungeons/" + saveName + ".json", JsonUtility.ToJson(data));
     }
 
     public void LoadDungeon()
     {
         EditorClear();
-        DungeonData data = JsonUtility.FromJson<DungeonData>( System.IO.File.ReadAllText(Application.dataPath + "/SavedDungeons/dungeon.json"));
+        DungeonData data = JsonUtility.FromJson<DungeonData>( System.IO.File.ReadAllText(Application.dataPath + "/SavedDungeons/" + saveName + ".json"));
         grid = new Grid3D<Cell>(data.Size, data.Offset);
         for (int i = 0; i < grid.Data.Length; i++)
         {
