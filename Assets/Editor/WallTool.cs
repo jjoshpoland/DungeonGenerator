@@ -117,6 +117,7 @@ public class WallTool : EditorTool, IDrawSelectedHandles
             if(ct == CellType.Room)
             {
                 newCell.DoorWay = doorway;
+                newCell.RoomID = wall.Grid[wall.Position].RoomID;
             }
             
         }
