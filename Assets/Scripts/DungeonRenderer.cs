@@ -11,6 +11,7 @@ public class DungeonRenderer : MonoBehaviour
     public float Scale = 1f;
 
     public GameObject Floor;
+    public DungeonWall Floor_DW;
     public DungeonWall Wall;
     public GameObject Ceiling;
     public DungeonWall Ceiling_DW;
@@ -27,6 +28,7 @@ public class DungeonRenderer : MonoBehaviour
 
     Grid3D<GameObject> CellBases;
 
+    [HideInInspector]
     public List<GameObject> SpawnTiles;
 
     public UnityEvent OnRendered;
@@ -97,7 +99,7 @@ public class DungeonRenderer : MonoBehaviour
 
         if (c.CellType == CellType.Hallway)
         {
-            GameObject floor = RenderDungeonPiece(Floor, Generator.transform, pos, Quaternion.identity, Vector3.zero);
+            GameObject floor = RenderWall(Floor_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.down).gameObject;
             CellBase = floor;
             DungeonWall ceiling = RenderWall(Ceiling_DW, CellBase.transform, pos, Quaternion.identity, Vector3Int.up);
             
@@ -109,14 +111,14 @@ public class DungeonRenderer : MonoBehaviour
                 Cell down = Generator.Grid[pos + Grid.Directions[(int)GridDirections.Down]];
                 if (down.CellType != CellType.Room || down.RoomID != c.RoomID)
                 {
-                    GameObject floor = RenderDungeonPiece(Floor, Generator.transform, pos, Quaternion.identity, Vector3.zero);
+                    GameObject floor = RenderWall(Floor_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.down).gameObject;
                     CellBase = floor;
                     floor.GetComponent<MeshRenderer>().sharedMaterial = RoomMaterial;
                 }
             }
             else
             {
-                GameObject floor = RenderDungeonPiece(Floor, Generator.transform, pos, Quaternion.identity, Vector3.zero);
+                GameObject floor = RenderWall(Floor_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.down).gameObject; 
                 CellBase = floor;
                 floor.GetComponent<MeshRenderer>().sharedMaterial = RoomMaterial;
             }
@@ -281,6 +283,10 @@ public class DungeonRenderer : MonoBehaviour
 
                     }
 
+                    if(neighbor.CellType == CellType.Room && neighbor.RoomID != c.RoomID)
+                    {
+                        RenderDungeonPiece(Doorway, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Vector3.zero);
+                    }
                 }
 
 

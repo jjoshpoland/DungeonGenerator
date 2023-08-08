@@ -12,13 +12,13 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Mesh
       value: 
-      objectReference: {fileID: 3633865748600368068, guid: 22522348435a4a848a94cd1ee7491d0c,
+      objectReference: {fileID: -629719859055844128, guid: 6a5c5cf755eb4bd48a0deacc41cf4145,
         type: 3}
     - target: {fileID: 5873041952551694314, guid: 5420756ccc665ff4ab576064c4c69857,
         type: 3}
       propertyPath: m_Mesh
       value: 
-      objectReference: {fileID: 3633865748600368068, guid: 22522348435a4a848a94cd1ee7491d0c,
+      objectReference: {fileID: -629719859055844128, guid: 6a5c5cf755eb4bd48a0deacc41cf4145,
         type: 3}
     - target: {fileID: 7612346590587569510, guid: 5420756ccc665ff4ab576064c4c69857,
         type: 3}
@@ -28,7 +28,7 @@ PrefabInstance:
     - target: {fileID: 8260868991016199347, guid: 5420756ccc665ff4ab576064c4c69857,
         type: 3}
       propertyPath: m_Name
-      value: DungeonWallCeiling
+      value: DungeonWallFloor
       objectReference: {fileID: 0}
     - target: {fileID: 8786329602881437193, guid: 5420756ccc665ff4ab576064c4c69857,
         type: 3}

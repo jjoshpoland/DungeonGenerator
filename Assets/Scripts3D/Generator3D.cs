@@ -131,6 +131,11 @@ public class Generator3D : MonoBehaviour {
             grid.Clear();
         }
     }
+    public int AddRoom(Vector3Int pos)
+    {
+        rooms.Add(new Room(pos, Vector3Int.one));
+        return rooms.Count - 1;
+    }
 
     void PlaceRooms() {
         for (int i = 0; i < roomCount; i++) {

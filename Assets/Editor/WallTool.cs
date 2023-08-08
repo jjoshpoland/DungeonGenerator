@@ -10,6 +10,7 @@ public class WallTool : EditorTool, IDrawSelectedHandles
 {
     CellType cellType = CellType.Hallway;
     bool doorway = true;
+    bool extendRoom = true;
 
     [Shortcut("Activate Wall Tool", typeof(SceneView), KeyCode.D)]
     static void PlatformToolShortcut()
@@ -35,12 +36,13 @@ public class WallTool : EditorTool, IDrawSelectedHandles
         {
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
+                extendRoom = EditorGUILayout.Toggle("Extend Room", extendRoom);
                 GUILayout.Label("H = Hallway");
                 GUILayout.Label("F = Room without doorway");
                 GUILayout.Label("D = Room with door");
                 GUILayout.Label("N = Erase");
                 GUILayout.Label("S = Stairs Up");
-                //doorway = EditorGUILayout.Toggle("Doorway", doorway);
+                
 
                 //if (GUILayout.Button("Hallway"))
                 //{
@@ -114,10 +116,18 @@ public class WallTool : EditorTool, IDrawSelectedHandles
             Cell newCell = new Cell();
             wall.Grid[wall.Position + orientation] = newCell;
             newCell.CellType = ct;
-            if(ct == CellType.Room)
+            if (ct == CellType.Room)
             {
                 newCell.DoorWay = doorway;
-                newCell.RoomID = wall.Grid[wall.Position].RoomID;
+                if (extendRoom)
+                {
+                    newCell.RoomID = wall.Grid[wall.Position].RoomID;
+                }
+                else
+                {
+                    newCell.RoomID = wall.ParentRenderer.Generator.AddRoom(wall.Position);
+                }
+                
             }
             
         }
