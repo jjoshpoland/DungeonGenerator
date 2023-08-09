@@ -9,4 +9,5 @@ public class DungeonData
     public List<Cell> Cells;
     public Vector3Int Size;
     public Vector3Int Offset;
+    public List<Generator3D.Room> Rooms;
 }

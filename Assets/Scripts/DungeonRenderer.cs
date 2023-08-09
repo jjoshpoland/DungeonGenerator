@@ -9,7 +9,8 @@ public class DungeonRenderer : MonoBehaviour
     public Generator3D Generator;
 
     public float Scale = 1f;
-
+    public Theme DefaultTheme;
+    public List<Theme> Themes;
     public GameObject Floor;
     public DungeonWall Floor_DW;
     public DungeonWall Wall;
@@ -21,6 +22,7 @@ public class DungeonRenderer : MonoBehaviour
     public GameObject HalfFoundation;
     public GameObject SteepRamp;
     public GameObject Doorway;
+    public DungeonRoom RoomHandlePrefab;
 
     public Material RoomMaterial;
     public Material HallMaterial;
@@ -37,6 +39,11 @@ public class DungeonRenderer : MonoBehaviour
     {
         CellBases = new Grid3D<GameObject>(Generator.Grid.Size, Generator.Grid.Offset);
         SpawnTiles = new List<GameObject>();
+
+        foreach(Generator3D.Room room in Generator.Rooms)
+        {
+            CreateRoomHandle(room);
+        }
 
         for (int x = 0; x < Generator.Size.x; x++)
         {
@@ -56,6 +63,51 @@ public class DungeonRenderer : MonoBehaviour
         }
 
         OnRendered.Invoke();
+    }
+
+    public void CreateRoomHandle(Generator3D.Room room)
+    {
+        DungeonRoom newRoom = Instantiate(RoomHandlePrefab, Generator.transform);
+        newRoom.Room = room;
+        newRoom.DR = this;
+        newRoom.transform.position = new Vector3(room.bounds.center.x * Scale, room.bounds.center.y * Scale, room.bounds.center.z * Scale);
+
+        if (room.theme >= 0)
+        {
+            newRoom.RoomTheme = Themes[room.theme];
+            ApplyRoom(room, newRoom.RoomTheme);
+        }
+        else
+        {
+            ApplyRoom(room, null);
+        }
+        
+    }
+
+    public void ApplyRoom(Generator3D.Room room, Theme roomTheme)
+    {
+        if (Generator.Grid == null) return;
+        if(roomTheme != null && Themes.Contains(roomTheme))
+        {
+            room.theme = Themes.IndexOf(roomTheme);
+        }
+        else if(roomTheme == null)
+        {
+            room.theme = -1;
+        }
+        for (int x = room.bounds.x; x < room.bounds.xMax; x++)
+        {
+            for (int y = room.bounds.y; y < room.bounds.yMax; y++)
+            {
+                for (int z = room.bounds.z; z < room.bounds.zMax; z++)
+                {
+                    Vector3Int pos = new Vector3Int(x, y, z);
+
+                    Generator.Grid[pos].theme = room.theme;
+                }
+            }
+        }
+
     }
 
     public void RenderArea_Editor(Vector3Int start, Vector3Int size)
@@ -87,7 +139,7 @@ public class DungeonRenderer : MonoBehaviour
 
                     RenderCell(pos, c);
 
-                }
+                } 
             }
 
         }
@@ -97,11 +149,21 @@ public class DungeonRenderer : MonoBehaviour
     {
         GameObject CellBase = null;
 
+        Theme theme = null;
+        if(c.theme >= 0)
+        {
+            theme = Themes[c.theme];
+        }
+        else
+        {
+            theme = DefaultTheme;
+        }
+
         if (c.CellType == CellType.Hallway)
         {
-            GameObject floor = RenderWall(Floor_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.down).gameObject;
+            GameObject floor = RenderWall(Floor_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.down, theme.WallMaterial).gameObject;
             CellBase = floor;
-            DungeonWall ceiling = RenderWall(Ceiling_DW, CellBase.transform, pos, Quaternion.identity, Vector3Int.up);
+            DungeonWall ceiling = RenderWall(Ceiling_DW, CellBase.transform, pos, Quaternion.identity, Vector3Int.up, theme.WallMaterial);
             
         }
         else if (c.CellType == CellType.Room)
@@ -111,16 +173,16 @@ public class DungeonRenderer : MonoBehaviour
                 Cell down = Generator.Grid[pos + Grid.Directions[(int)GridDirections.Down]];
                 if (down.CellType != CellType.Room || down.RoomID != c.RoomID)
                 {
-                    GameObject floor = RenderWall(Floor_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.down).gameObject;
+                    GameObject floor = RenderWall(Floor_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.down, theme.WallMaterial).gameObject;
                     CellBase = floor;
-                    floor.GetComponent<MeshRenderer>().sharedMaterial = RoomMaterial;
+                    floor.GetComponent<MeshRenderer>().sharedMaterial = theme.FloorMaterial;
                 }
             }
             else
             {
-                GameObject floor = RenderWall(Floor_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.down).gameObject; 
+                GameObject floor = RenderWall(Floor_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.down, theme.WallMaterial).gameObject; 
                 CellBase = floor;
-                floor.GetComponent<MeshRenderer>().sharedMaterial = RoomMaterial;
+                floor.GetComponent<MeshRenderer>().sharedMaterial = theme.FloorMaterial;
             }
 
             if(c.SpawnRoom)
@@ -133,7 +195,7 @@ public class DungeonRenderer : MonoBehaviour
                 Cell up = Generator.Grid[pos + Grid.Directions[(int)GridDirections.Up]];
                 if (up.CellType != CellType.Room || up.RoomID != c.RoomID)
                 {
-                    DungeonWall ceiling = RenderWall(Ceiling_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.up);
+                    DungeonWall ceiling = RenderWall(Ceiling_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.up, theme.WallMaterial);
                     if (CellBase == null)
                     {
                         CellBase = ceiling.gameObject;
@@ -142,12 +204,12 @@ public class DungeonRenderer : MonoBehaviour
                     {
                         ceiling.transform.parent = CellBase.transform;
                     }
-                    ceiling.GetComponent<MeshRenderer>().sharedMaterial = RoomMaterial;
+                    ceiling.GetComponent<MeshRenderer>().sharedMaterial = theme.WallMaterial;
                 }
             }
             else
             {
-                DungeonWall ceiling = RenderWall(Ceiling_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.up);
+                DungeonWall ceiling = RenderWall(Ceiling_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.up, theme.WallMaterial);
                 if (CellBase == null)
                 {
                     CellBase = ceiling.gameObject;
@@ -156,7 +218,7 @@ public class DungeonRenderer : MonoBehaviour
                 {
                     ceiling.transform.parent = CellBase.transform;
                 }
-                ceiling.GetComponent<MeshRenderer>().sharedMaterial = RoomMaterial;
+                ceiling.GetComponent<MeshRenderer>().sharedMaterial = theme.WallMaterial;
             }
         }
         else if (c.CellType == CellType.Stairs)
@@ -168,20 +230,20 @@ public class DungeonRenderer : MonoBehaviour
             switch (c.StairType)
             {
                 case StairType.Top:
-                    CellBase = RenderDungeonPiece(FloorRamp, Generator.transform, pos, rot, Vector3.zero);
+                    CellBase = RenderDungeonPiece(FloorRamp, Generator.transform, pos, rot, Vector3.zero, theme.FloorMaterial);
 
-                    DungeonWall ceiling = RenderWall(Ceiling_DW, CellBase.transform, pos, Quaternion.identity, Vector3Int.up);
-                    if (up) ceiling.GetComponent<MeshRenderer>().material = UpMaterial;
+                    DungeonWall ceiling = RenderWall(Ceiling_DW, CellBase.transform, pos, Quaternion.identity, Vector3Int.up, theme.WallMaterial);
+                    if (up) ceiling.GetComponent<MeshRenderer>().material = theme.WallMaterial;
                     break;
                 case StairType.Ceiling:
-                    CellBase = RenderWall(Ceiling_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.up).gameObject;
+                    CellBase = RenderWall(Ceiling_DW, Generator.transform, pos, Quaternion.identity, Vector3Int.up, theme.WallMaterial).gameObject;
                     break;
                 case StairType.Landing:
-                    CellBase = RenderDungeonPiece(FloorRamp, Generator.transform, pos, rot, new Vector3(0, .5f, 0));
+                    CellBase = RenderDungeonPiece(FloorRamp, Generator.transform, pos, rot, new Vector3(0, .5f, 0), theme.FloorMaterial);
 
                     break;
                 case StairType.Staircase:
-                    CellBase = RenderDungeonPiece(HalfFoundation, Generator.transform, pos, rot, new Vector3(0, .5f, 0));
+                    CellBase = RenderDungeonPiece(HalfFoundation, Generator.transform, pos, rot, new Vector3(0, .5f, 0), theme.FloorMaterial);
                     break;
                 default:
                     break;
@@ -189,7 +251,7 @@ public class DungeonRenderer : MonoBehaviour
 
             if (CellBase != null && up)
             {
-                CellBase.GetComponent<MeshRenderer>().material = UpMaterial;
+                CellBase.GetComponent<MeshRenderer>().material = theme.FloorMaterial;
             }
         }
 
@@ -204,13 +266,13 @@ public class DungeonRenderer : MonoBehaviour
             {
                 if (!Generator.Grid.InBounds(pos + Grid.Directions[n]))
                 {
-                    RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n]);
+                    RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n], theme.WallMaterial);
                     continue;
                 }
                 Cell neighbor = Generator.Grid[pos + Grid.Directions[n]];
                 if (neighbor.CellType == CellType.None)
                 {
-                    RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n]);
+                    RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n], theme.WallMaterial);
                 }
                 else if (neighbor.CellType == CellType.Stairs)
                 {
@@ -222,13 +284,13 @@ public class DungeonRenderer : MonoBehaviour
                         {
                             if (d != n && (d + 2) % 4 != n)
                             {
-                                RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n]);
+                                RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n], theme.WallMaterial);
                             }
 
                         }
                         else if (c.CellType != CellType.Stairs)
                         {
-                            RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n]);
+                            RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n], theme.WallMaterial);
                         }
                     }
                     else //if i am a stair and my neighbor is a stair
@@ -240,20 +302,25 @@ public class DungeonRenderer : MonoBehaviour
                             if ((cd + 2) % 4 != d) //if not going in the opposite direction
                             {
                                 //perpendicular
-                                RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n]);
+                                RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n], theme.WallMaterial);
                             }
                             else
                             {
                                 //parallel
                                 if (c.StairType != neighbor.StairType) //criss crossing
                                 {
-                                    RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n]);
+                                    RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n], theme.WallMaterial);
                                 }
+
                             }
                         }
                         else
                         {
-                            //parallel and aligned
+                            //parallel
+                            if (c.StairType != neighbor.StairType && cd != n && (cd + 2) % 4 != n)
+                            {
+                                RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n], theme.WallMaterial);
+                            }
                         }
                     }
 
@@ -265,8 +332,8 @@ public class DungeonRenderer : MonoBehaviour
                         Cell down = Generator.Grid[pos + Grid.Directions[(int)GridDirections.Down]];
                         if (down.CellType == CellType.Room && down.RoomID == c.RoomID)
                         {
-                            GameObject steepStair = RenderDungeonPiece(SteepRamp, CellBase.transform, pos + Vector3Int.down, Quaternion.Euler(new Vector3(0, (n * 90) + 90, 0)), Vector3.zero);
-                            steepStair.GetComponent<MeshRenderer>().material = RoomMaterial;
+                            GameObject steepStair = RenderDungeonPiece(SteepRamp, CellBase.transform, pos + Vector3Int.down, Quaternion.Euler(new Vector3(0, (n * 90) + 90, 0)), Vector3.zero, theme.FloorMaterial);
+                            steepStair.GetComponent<MeshRenderer>().material = theme.FloorMaterial;
                         }
                     }
 
@@ -274,18 +341,18 @@ public class DungeonRenderer : MonoBehaviour
                     {
                         if (c.DoorWay)
                         {
-                            RenderDungeonPiece(Doorway, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Vector3.zero);
+                            RenderDungeonPiece(Doorway, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Vector3.zero, theme.WallMaterial);
                         }
                         else
                         {
-                            RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n]);
+                            RenderWall(Wall, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Grid.Directions[n], theme.WallMaterial);
                         }
 
                     }
 
                     if(neighbor.CellType == CellType.Room && neighbor.RoomID != c.RoomID)
                     {
-                        RenderDungeonPiece(Doorway, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Vector3.zero);
+                        RenderDungeonPiece(Doorway, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Vector3.zero, theme.WallMaterial);
                     }
                 }
 
@@ -298,7 +365,7 @@ public class DungeonRenderer : MonoBehaviour
         CellBases[pos] = CellBase;
     }
 
-    DungeonWall RenderWall(DungeonWall wallPrefab, Transform parent, Vector3Int position, Quaternion rotation, Vector3Int orientation)
+    DungeonWall RenderWall(DungeonWall wallPrefab, Transform parent, Vector3Int position, Quaternion rotation, Vector3Int orientation, Material mat)
     {
         DungeonWall newWall = Instantiate(wallPrefab);
         newWall.transform.rotation = rotation;
@@ -309,16 +376,18 @@ public class DungeonRenderer : MonoBehaviour
         newWall.Orientation = orientation;
         newWall.Grid = Generator.Grid;
         newWall.ParentRenderer = this;
+        newWall.GetComponent<MeshRenderer>().sharedMaterial = mat;
         return newWall;
     }
 
-    GameObject RenderDungeonPiece(GameObject piece, Transform parent, Vector3Int position, Quaternion rotation, Vector3 offset)
+    GameObject RenderDungeonPiece(GameObject piece, Transform parent, Vector3Int position, Quaternion rotation, Vector3 offset, Material mat)
     {
         GameObject newPiece = Instantiate(piece);
         newPiece.transform.rotation = rotation;
         newPiece.transform.position = new Vector3((position.x + offset.x) * Scale, (position.y + offset.y) * Scale, (position.z + offset.z) * Scale);
         newPiece.transform.localScale = new Vector3(Scale, Scale, Scale);
         newPiece.transform.parent = parent;
+        newPiece.GetComponent<MeshRenderer>().sharedMaterial = mat;
         return newPiece;
     }
 

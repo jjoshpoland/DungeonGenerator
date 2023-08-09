@@ -8,9 +8,10 @@ using UnityEngine.Events;
 [ExecuteInEditMode]
 public class Generator3D : MonoBehaviour {
     
-
-    class Room {
+    [System.Serializable]
+    public class Room {
         public BoundsInt bounds;
+        public int theme = -1;
 
         public Room(Vector3Int location, Vector3Int size) {
             bounds = new BoundsInt(location, size);
@@ -54,6 +55,8 @@ public class Generator3D : MonoBehaviour {
     public Grid3D<Cell> Grid => grid;
     public Vector3Int Size => size;
 
+    public List<Room> Rooms => rooms;
+
     public void Generate()
     {
         random = new Random((int)System.DateTime.Now.Ticks);
@@ -84,6 +87,7 @@ public class Generator3D : MonoBehaviour {
         data.Cells = new List<Cell>(grid.Data);
         data.Size = grid.Size;
         data.Offset = grid.Offset;
+        data.Rooms = rooms;
         System.IO.File.WriteAllText(Application.dataPath + "/SavedDungeons/" + saveName + ".json", JsonUtility.ToJson(data));
     }
 
