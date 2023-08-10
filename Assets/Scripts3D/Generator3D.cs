@@ -100,7 +100,7 @@ public class Generator3D : MonoBehaviour {
         {
             grid.Data[i] = data.Cells[i];
         }
-
+        rooms = data.Rooms;
         OnGenerated.Invoke();
     }
 
