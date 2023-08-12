@@ -47,9 +47,7 @@ public class Generator3D : MonoBehaviour {
     public UnityEvent OnGenerated;
 
     Random random;
-    [SerializeField][HideInInspector]
     Grid3D<Cell> grid;
-    [SerializeField][HideInInspector]
     List<Room> rooms;
     Delaunay3D delaunay;
     HashSet<Prim.Edge> selectedEdges;

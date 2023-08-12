@@ -28,7 +28,6 @@ public class DungeonRenderer : MonoBehaviour
     public Material HallMaterial;
     public Material UpMaterial;
 
-    [SerializeField][HideInInspector]
     Grid3D<GameObject> CellBases;
 
     [HideInInspector]
