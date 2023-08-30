@@ -11,6 +11,7 @@ public class CharacterSpawner : MonoBehaviour
 
     private void Start()
     {
+        DR.Generator.LoadDungeon();
         SpawnPlayerCharacter();
     }
 

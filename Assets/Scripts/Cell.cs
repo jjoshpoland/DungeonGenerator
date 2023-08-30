@@ -14,6 +14,7 @@ public class Cell
     public bool Path;
     public Vector3Int PrevPath;
     public bool SpawnRoom;
+    public bool RoomFloor;
 }
 
 public enum CellType
@@ -26,6 +27,7 @@ public enum CellType
 
 public enum StairType
 {
+    None,
     Top,
     Ceiling,
     Staircase,

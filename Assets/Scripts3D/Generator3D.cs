@@ -11,10 +11,12 @@ public class Generator3D : MonoBehaviour {
     [System.Serializable]
     public class Room {
         public BoundsInt bounds;
+        public RoomType type;
         public int theme = -1;
 
-        public Room(Vector3Int location, Vector3Int size) {
+        public Room(Vector3Int location, Vector3Int size, RoomType type) {
             bounds = new BoundsInt(location, size);
+            this.type = type;
         }
 
         public static bool Intersect(Room a, Room b) {
@@ -22,6 +24,7 @@ public class Generator3D : MonoBehaviour {
                 || (a.bounds.position.y >= (b.bounds.position.y + b.bounds.size.y)) || ((a.bounds.position.y + a.bounds.size.y) <= b.bounds.position.y)
                 || (a.bounds.position.z >= (b.bounds.position.z + b.bounds.size.z)) || ((a.bounds.position.z + a.bounds.size.z) <= b.bounds.position.z));
         }
+
     }
 
     [SerializeField]
@@ -77,6 +80,7 @@ public class Generator3D : MonoBehaviour {
         Triangulate();
         CreateHallways();
         PathfindHallways();
+        SplitRooms();
 
         OnGenerated.Invoke();
     }
@@ -137,7 +141,7 @@ public class Generator3D : MonoBehaviour {
     }
     public int AddRoom(Vector3Int pos)
     {
-        rooms.Add(new Room(pos, Vector3Int.one));
+        rooms.Add(new Room(pos, Vector3Int.one, RoomType.Bridge));
         return rooms.Count - 1;
     }
 
@@ -157,8 +161,8 @@ public class Generator3D : MonoBehaviour {
             );
 
             bool add = true;
-            Room newRoom = new Room(location, roomSize);
-            Room buffer = new Room(location + new Vector3Int(-1, 0, -1), roomSize + new Vector3Int(2, 0, 2));
+            Room newRoom = new Room(location, roomSize, (RoomType)random.Next(0, 3));
+            Room buffer = new Room(location + new Vector3Int(-1, 0, -1), roomSize + new Vector3Int(2, 0, 2), (RoomType)random.Next(0, 2));
 
             foreach (var room in rooms) {
                 if (Room.Intersect(room, buffer)) {
@@ -175,6 +179,7 @@ public class Generator3D : MonoBehaviour {
 
             if (add) {
                 rooms.Add(newRoom);
+                Debug.Log(newRoom.type);
                 //PlaceRoom(newRoom.bounds.position, newRoom.bounds.size);
 
                 foreach (var pos in newRoom.bounds.allPositionsWithin) {
@@ -185,6 +190,14 @@ public class Generator3D : MonoBehaviour {
 
                 if (generateStartingRoomOnly) break;
             }
+        }
+    }
+
+    void SplitRooms()
+    {
+        foreach(Room room in rooms)
+        {
+            SplitRoomLevels(room);
         }
     }
 
@@ -217,6 +230,8 @@ public class Generator3D : MonoBehaviour {
             }
         }
     }
+
+    
 
     void PathfindHallways() {
         DungeonPathfinder3D aStar = new DungeonPathfinder3D(size);
@@ -365,4 +380,97 @@ public class Generator3D : MonoBehaviour {
     void PlaceStairs(Vector3Int location) {
         PlaceCube(location, new Vector3Int(1, 1, 1), greenMaterial);
     }
+
+    void SplitRoomLevels(Room room)
+    {
+        if(room.bounds.size.y <= 1)
+        {
+            return;
+        }
+        for (int y = room.bounds.position.y; y < room.bounds.max.y; y++)
+        {
+            for (int x = room.bounds.position.x; x < room.bounds.max.x; x++)
+            {
+                for (int z = room.bounds.position.z; z < room.bounds.max.z; z++)
+                {
+                    Vector3Int pos = new Vector3Int(x, y, z);
+                    if (room.type == RoomType.Gallery)
+                    {
+                        if(y == room.bounds.position.y + 1)
+                        {
+                            if (z == room.bounds.position.z || z == room.bounds.max.z - 1 || x == room.bounds.position.x || x == room.bounds.max.x - 1)
+                            {
+                                grid[pos].RoomFloor = true;
+                            }
+                        }
+                        
+                    }
+                    else if (room.type == RoomType.Bridge)
+                    {
+
+                    }
+
+                }
+            }
+        }
+        
+
+        if(room.type == RoomType.Gallery)
+        {
+            int side = random.Next(0, 2);
+            Vector3Int stairTop = new Vector3Int(0, 0, 0);
+            Vector3Int stairBottom = new Vector3Int(0, 0, 0); 
+            if (room.bounds.size.x > room.bounds.size.z)
+            {
+                if(side == 0)
+                {
+                    stairTop = new Vector3Int(room.bounds.position.x + 1, room.bounds.position.y + 1, random.Next(room.bounds.position.z + 1, room.bounds.max.z - 2));
+                    stairBottom = stairTop + GridMath.Directions[(int)GridDirections.Right] + GridMath.Directions[(int)GridDirections.Down];
+                    grid[stairTop].StairType = StairType.Top;
+                    grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].StairType = StairType.Staircase;
+                    grid[stairTop].StairDirection = GridMath.Directions[(int)GridDirections.Right];
+                    grid[stairBottom].StairDirection = GridMath.Directions[(int)GridDirections.Right];
+                    grid[stairBottom].StairType = StairType.Landing;
+                }
+                else
+                {
+                    stairTop = new Vector3Int(room.bounds.max.x - 2, room.bounds.position.y + 1, random.Next(room.bounds.position.z + 1, room.bounds.max.z - 2));
+                    stairBottom = stairTop + GridMath.Directions[(int)GridDirections.Left] + GridMath.Directions[(int)GridDirections.Down];
+                    grid[stairTop].StairType = StairType.Top;
+                    grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].StairType = StairType.Staircase;
+                    grid[stairTop].StairDirection = GridMath.Directions[(int)GridDirections.Left];
+                    grid[stairBottom].StairDirection = GridMath.Directions[(int)GridDirections.Left];
+                    grid[stairBottom].StairType = StairType.Landing;
+                }
+            }
+            else
+            {
+                if (side == 0)
+                {
+                    stairTop = new Vector3Int(random.Next(room.bounds.position.x + 1, room.bounds.max.x - 2), room.bounds.position.y + 1, room.bounds.position.z + 1);
+                    stairBottom = stairTop + GridMath.Directions[(int)GridDirections.Forward] + GridMath.Directions[(int)GridDirections.Down];
+                    grid[stairTop].StairType = StairType.Top;
+                    grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].StairType = StairType.Staircase;
+                    grid[stairTop].StairDirection = GridMath.Directions[(int)GridDirections.Forward];
+                    grid[stairBottom].StairDirection = GridMath.Directions[(int)GridDirections.Forward];
+                    grid[stairBottom].StairType = StairType.Landing;
+                }
+                else
+                {
+                    stairTop = new Vector3Int(random.Next(room.bounds.position.x + 1, room.bounds.max.x - 2), room.bounds.position.y + 1, room.bounds.max.z - 2);
+                    stairBottom = stairTop + GridMath.Directions[(int)GridDirections.Back] + GridMath.Directions[(int)GridDirections.Down];
+                    grid[stairTop].StairType = StairType.Top;
+                    grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].StairType = StairType.Staircase;
+                    grid[stairTop].StairDirection = GridMath.Directions[(int)GridDirections.Back];
+                    grid[stairBottom].StairDirection = GridMath.Directions[(int)GridDirections.Back];
+                    grid[stairBottom].StairType = StairType.Landing;
+                }
+            }
+        }
+    }
+}
+
+public enum RoomType
+{
+    Stacked, Gallery, Bridge
 }

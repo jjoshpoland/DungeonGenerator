@@ -53,7 +53,7 @@ public class Grid3D<T> {
 
 }
 
-public static class Grid
+public static class GridMath
 {
     public static readonly Vector3Int[] Directions =
     {
