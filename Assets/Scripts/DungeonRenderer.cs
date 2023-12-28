@@ -22,6 +22,7 @@ public class DungeonRenderer : MonoBehaviour
     public GameObject HalfFoundation;
     public GameObject SteepRamp;
     public GameObject Doorway;
+    public GameObject Archway;
     public DungeonRoom RoomHandlePrefab;
 
     public Material RoomMaterial;
@@ -168,6 +169,7 @@ public class DungeonRenderer : MonoBehaviour
         }
         else if (c.CellType == CellType.Room)
         {
+            
             if (Generator.Grid.InBounds(pos + GridMath.Directions[(int)GridDirections.Down]))
             {
                 Cell down = Generator.Grid[pos + GridMath.Directions[(int)GridDirections.Down]];
@@ -242,6 +244,10 @@ public class DungeonRenderer : MonoBehaviour
             {
                 Quaternion rot = Quaternion.Euler(new Vector3(0, (GridMath.HorizontalDirectionFromVector(c.StairDirection) * 90) - 90, 0));
                 RenderStair(c, pos, rot, theme, false, false);
+            }
+            if (c.Covered)
+            {
+                RenderDungeonPiece(Archway, CellBase.transform, pos, Quaternion.identity, Vector3.zero, theme.WallMaterial);
             }
         }
         else if (c.CellType == CellType.Stairs)
@@ -345,10 +351,11 @@ public class DungeonRenderer : MonoBehaviour
 
                     }
 
-                    if(neighbor.CellType == CellType.Room && neighbor.RoomID != c.RoomID)
-                    {
-                        RenderDungeonPiece(Doorway, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Vector3.zero, theme.WallMaterial);
-                    }
+                    //TODO: update this case as a c.Doorway = true in the generator pass if needed. Maybe include a random chance to avoid multiple doors side by side
+                    //if(neighbor.CellType == CellType.Room && neighbor.RoomID != c.RoomID)
+                    //{
+                    //    RenderDungeonPiece(Doorway, CellBase.transform, pos, Quaternion.Euler(new Vector3(0, (n * 90) + 180, 0)), Vector3.zero, theme.WallMaterial);
+                    //}
                 }
 
 

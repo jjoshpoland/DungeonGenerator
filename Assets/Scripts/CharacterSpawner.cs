@@ -11,7 +11,7 @@ public class CharacterSpawner : MonoBehaviour
 
     private void Start()
     {
-        DR.Generator.LoadDungeon();
+        //DR.Generator.LoadDungeon();
         SpawnPlayerCharacter();
     }
 
@@ -28,7 +28,7 @@ public class CharacterSpawner : MonoBehaviour
         }
         else
         {
-
+            SetSpawnPoint();
             GameObject newCharacter = Instantiate(Character);
             newCharacter.transform.position = startingSpawn.transform.position + Vector3.up;
         }

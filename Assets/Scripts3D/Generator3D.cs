@@ -81,9 +81,12 @@ public class Generator3D : MonoBehaviour {
         CreateHallways();
         PathfindHallways();
         SplitRooms();
+        CleanUpIsolatedRooms();
 
         OnGenerated.Invoke();
     }
+
+    
 
     public void SaveDungeon()
     {
@@ -295,6 +298,73 @@ public class Generator3D : MonoBehaviour {
                 return pathCost;
             });
 
+            if (path == null)
+            {
+                if (grid.InBounds(endPos + GridMath.Directions[(int)GridDirections.Down]) && grid[endPos + GridMath.Directions[(int)GridDirections.Down]].RoomID == grid[endPos].RoomID)
+                {
+                    path = aStar.FindPath(startPos, endPos + GridMath.Directions[(int)GridDirections.Down], (DungeonPathfinder3D.Node a, DungeonPathfinder3D.Node b) =>
+                    {
+                        var pathCost = new DungeonPathfinder3D.PathCost();
+
+                        var delta = b.Position - a.Position;
+
+                        if (delta.y == 0)
+                        {
+                            //flat hallway
+                            pathCost.cost = Vector3Int.Distance(b.Position, endPos);    //heuristic
+
+                            if (grid[b.Position].CellType == CellType.Stairs)
+                            {
+                                return pathCost;
+                            }
+                            else if (grid[b.Position].CellType == CellType.Room)
+                            {
+                                pathCost.cost += 5;
+                            }
+                            else if (grid[b.Position].CellType == CellType.None)
+                            {
+                                pathCost.cost += 1;
+                            }
+
+                            pathCost.traversable = true;
+                        }
+                        else
+                        {
+                            //staircase
+                            if ((grid[a.Position].CellType != CellType.None && grid[a.Position].CellType != CellType.Hallway)
+                                || (grid[b.Position].CellType != CellType.None && grid[b.Position].CellType != CellType.Hallway)) return pathCost;
+
+                            pathCost.cost = 100 + Vector3Int.Distance(b.Position, endPos);    //base cost + heuristic
+
+                            int xDir = Mathf.Clamp(delta.x, -1, 1);
+                            int zDir = Mathf.Clamp(delta.z, -1, 1);
+                            Vector3Int verticalOffset = new Vector3Int(0, delta.y, 0);
+                            Vector3Int horizontalOffset = new Vector3Int(xDir, 0, zDir);
+
+                            if (!grid.InBounds(a.Position + verticalOffset)
+                                || !grid.InBounds(a.Position + horizontalOffset)
+                                || !grid.InBounds(a.Position + verticalOffset + horizontalOffset))
+                            {
+                                return pathCost;
+                            }
+
+                            if (grid[a.Position + horizontalOffset].CellType != CellType.None
+                                || grid[a.Position + horizontalOffset * 2].CellType != CellType.None
+                                || grid[a.Position + verticalOffset + horizontalOffset].CellType != CellType.None
+                                || grid[a.Position + verticalOffset + horizontalOffset * 2].CellType != CellType.None)
+                            {
+                                return pathCost;
+                            }
+
+                            pathCost.traversable = true;
+                            pathCost.isStairs = true;
+                        }
+
+                        return pathCost;
+                    });
+                }
+            }
+
             if (path != null) {
                 for (int i = 0; i < path.Count; i++) {
                     var current = path[i];
@@ -381,6 +451,37 @@ public class Generator3D : MonoBehaviour {
         PlaceCube(location, new Vector3Int(1, 1, 1), greenMaterial);
     }
 
+    private void CleanUpIsolatedRooms()
+    {
+        
+        foreach(Room room in rooms)
+        {
+            List<Cell> roomCells = new List<Cell>();
+            for (int x = room.bounds.xMin; x < room.bounds.xMax; x++)
+            {
+                for (int y = room.bounds.yMin; y < room.bounds.yMax; y++)
+                {
+                    for (int z = room.bounds.zMin; z < room.bounds.zMax; z++)
+                    {
+                        Cell c = grid[new Vector3Int(x, y, z)];
+                        if(c.Path || c.DoorWay || c.CellType == CellType.Stairs || c.CellType == CellType.Hallway)
+                        {
+                            goto Skip;
+                        }
+                        roomCells.Add(c);
+                    }
+                }
+            }
+
+            foreach(Cell c in roomCells)
+            {
+                c.CellType = CellType.None;
+            }
+
+            Skip:;
+        }
+    }
+
     void SplitRoomLevels(Room room)
     {
         if(room.bounds.size.y <= 1)
@@ -394,6 +495,7 @@ public class Generator3D : MonoBehaviour {
                 for (int z = room.bounds.position.z; z < room.bounds.max.z; z++)
                 {
                     Vector3Int pos = new Vector3Int(x, y, z);
+                    Vector3Int downCoord = pos + GridMath.Directions[(int)GridDirections.Down];
                     if (room.type == RoomType.Gallery)
                     {
                         if(y == room.bounds.position.y + 1)
@@ -401,46 +503,85 @@ public class Generator3D : MonoBehaviour {
                             if (z == room.bounds.position.z || z == room.bounds.max.z - 1 || x == room.bounds.position.x || x == room.bounds.max.x - 1)
                             {
                                 grid[pos].RoomFloor = true;
+                                if (grid.InBounds(downCoord))
+                                {
+                                    grid[downCoord].Covered = true;
+                                }
                             }
                         }
                         
                     }
                     else if (room.type == RoomType.Bridge)
                     {
-
+                        if(y == room.bounds.position.y + 1)
+                        {
+                            if(grid[pos].Path)
+                            {
+                                grid[pos].RoomFloor = true;
+                                downCoord = pos + GridMath.Directions[(int)GridDirections.Down];
+                                
+                                if (grid.InBounds(downCoord))
+                                {
+                                    grid[downCoord].Covered = true;
+                                }
+                            }
+                        }
                     }
+                    else if (room.type == RoomType.Stacked)
+                    {
+                        if (y == room.bounds.position.y + 1)
+                        {
+                            grid[pos].RoomFloor = true;
+                            downCoord = pos + GridMath.Directions[(int)GridDirections.Down];
 
+                            if (grid.InBounds(downCoord))
+                            {
+                                grid[downCoord].Covered = true;
+                            }
+                        }
+                    }
                 }
             }
         }
         
 
-        if(room.type == RoomType.Gallery)
+        if(room.type == RoomType.Gallery || room.type == RoomType.Stacked)
         {
             int side = random.Next(0, 2);
             Vector3Int stairTop = new Vector3Int(0, 0, 0);
-            Vector3Int stairBottom = new Vector3Int(0, 0, 0); 
+            Vector3Int stairBottom = new Vector3Int(0, 0, 0);
+            Vector3Int stairCeiling = new Vector3Int(0, 0, 0);
             if (room.bounds.size.x > room.bounds.size.z)
             {
                 if(side == 0)
                 {
                     stairTop = new Vector3Int(room.bounds.position.x + 1, room.bounds.position.y + 1, random.Next(room.bounds.position.z + 1, room.bounds.max.z - 2));
                     stairBottom = stairTop + GridMath.Directions[(int)GridDirections.Right] + GridMath.Directions[(int)GridDirections.Down];
+                    stairCeiling = stairTop + GridMath.Directions[(int)GridDirections.Right];
+                    grid[stairCeiling].RoomFloor = false;
                     grid[stairTop].StairType = StairType.Top;
+                    grid[stairTop].RoomFloor = false;
                     grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].StairType = StairType.Staircase;
                     grid[stairTop].StairDirection = GridMath.Directions[(int)GridDirections.Right];
                     grid[stairBottom].StairDirection = GridMath.Directions[(int)GridDirections.Right];
                     grid[stairBottom].StairType = StairType.Landing;
+                    grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].Covered = false;
+                    grid[stairBottom].Covered = false;
                 }
                 else
                 {
                     stairTop = new Vector3Int(room.bounds.max.x - 2, room.bounds.position.y + 1, random.Next(room.bounds.position.z + 1, room.bounds.max.z - 2));
                     stairBottom = stairTop + GridMath.Directions[(int)GridDirections.Left] + GridMath.Directions[(int)GridDirections.Down];
+                    stairCeiling = stairTop + GridMath.Directions[(int)GridDirections.Left];
+                    grid[stairCeiling].RoomFloor = false;
                     grid[stairTop].StairType = StairType.Top;
+                    grid[stairTop].RoomFloor = false;
                     grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].StairType = StairType.Staircase;
                     grid[stairTop].StairDirection = GridMath.Directions[(int)GridDirections.Left];
                     grid[stairBottom].StairDirection = GridMath.Directions[(int)GridDirections.Left];
                     grid[stairBottom].StairType = StairType.Landing;
+                    grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].Covered = false;
+                    grid[stairBottom].Covered = false;
                 }
             }
             else
@@ -449,21 +590,31 @@ public class Generator3D : MonoBehaviour {
                 {
                     stairTop = new Vector3Int(random.Next(room.bounds.position.x + 1, room.bounds.max.x - 2), room.bounds.position.y + 1, room.bounds.position.z + 1);
                     stairBottom = stairTop + GridMath.Directions[(int)GridDirections.Forward] + GridMath.Directions[(int)GridDirections.Down];
+                    stairCeiling = stairTop + GridMath.Directions[(int)GridDirections.Forward];
+                    grid[stairCeiling].RoomFloor = false;
                     grid[stairTop].StairType = StairType.Top;
+                    grid[stairTop].RoomFloor = false;
                     grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].StairType = StairType.Staircase;
                     grid[stairTop].StairDirection = GridMath.Directions[(int)GridDirections.Forward];
                     grid[stairBottom].StairDirection = GridMath.Directions[(int)GridDirections.Forward];
                     grid[stairBottom].StairType = StairType.Landing;
+                    grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].Covered = false;
+                    grid[stairBottom].Covered = false;
                 }
                 else
                 {
                     stairTop = new Vector3Int(random.Next(room.bounds.position.x + 1, room.bounds.max.x - 2), room.bounds.position.y + 1, room.bounds.max.z - 2);
                     stairBottom = stairTop + GridMath.Directions[(int)GridDirections.Back] + GridMath.Directions[(int)GridDirections.Down];
+                    stairCeiling = stairTop + GridMath.Directions[(int)GridDirections.Back];
+                    grid[stairCeiling].RoomFloor = false;
                     grid[stairTop].StairType = StairType.Top;
+                    grid[stairTop].RoomFloor = false;
                     grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].StairType = StairType.Staircase;
                     grid[stairTop].StairDirection = GridMath.Directions[(int)GridDirections.Back];
                     grid[stairBottom].StairDirection = GridMath.Directions[(int)GridDirections.Back];
                     grid[stairBottom].StairType = StairType.Landing;
+                    grid[stairTop + GridMath.Directions[(int)GridDirections.Down]].Covered = false;
+                    grid[stairBottom].Covered = false;
                 }
             }
         }

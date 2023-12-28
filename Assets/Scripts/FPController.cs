@@ -85,6 +85,21 @@ public class FPController : MonoBehaviour
         }
     }
 
+    public void Fire(InputAction.CallbackContext context)
+    {
+        if(context.performed)
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Pointer.current.position.value);
+            if(Physics.Raycast(ray, out RaycastHit hit, 2f))
+            {
+                if(hit.collider.TryGetComponent<IInteractable>(out IInteractable thing))
+                {
+                    thing.Interact();
+                }
+            }
+        }
+    }
+
     public void Move(InputAction.CallbackContext context)
     {
         move = context.ReadValue<Vector2>();

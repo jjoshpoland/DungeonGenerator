@@ -15,6 +15,7 @@ public class Cell
     public Vector3Int PrevPath;
     public bool SpawnRoom;
     public bool RoomFloor;
+    public bool Covered;
 }
 
 public enum CellType
